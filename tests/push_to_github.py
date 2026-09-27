@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def git(*args: str, check: bool = True, redact: str = "") -> subprocess.CompletedProcess:
     proc = subprocess.run(
-        ["git", *args], cwd=ROOT, capture_output=True, text=True, timeout=300,
+        ["git", *GIT_NET, *args], cwd=ROOT, capture_output=True, text=True, timeout=300,
     )
     if check and proc.returncode != 0:
         out = (proc.stdout + proc.stderr).replace(redact, "<redacted>") if redact else (proc.stdout + proc.stderr)
@@ -29,6 +29,30 @@ def git(*args: str, check: bool = True, redact: str = "") -> subprocess.Complete
         print("  " + out[:600])
         raise SystemExit(1)
     return proc
+
+
+# 国内网络下 github.com:443 常被墙，但本机 FlClash 的 7890 代理可用。
+# 另外 Git for Windows 默认用 schannel，在受限上下文里会报
+# SEC_E_NO_CREDENTIALS，换成 OpenSSL 后端即可。
+PROXY = "http://127.0.0.1:7890"
+GIT_NET = [
+    f"-c", f"http.proxy={PROXY}",
+    "-c", "http.sslBackend=openssl",
+]
+
+
+def proxy_alive() -> bool:
+    import socket
+
+    s = socket.socket()
+    s.settimeout(2)
+    try:
+        s.connect(("127.0.0.1", 7890))
+        return True
+    except OSError:
+        return False
+    finally:
+        s.close()
 
 
 def get_credential() -> tuple[str, str]:
@@ -58,6 +82,9 @@ def main() -> int:
 
     user, token = get_credential()
     print(f"凭据：{user}（令牌 {token[:4]}…，长度 {len(token)}）")
+
+    if not proxy_alive():
+        print(f"警告：{PROXY} 不可达，github.com 可能连不上。")
 
     headers = {
         "Authorization": f"Bearer {token}",
@@ -98,9 +125,9 @@ def main() -> int:
     remote_url = f"https://github.com/{user}/{name}.git"
     push_url = f"https://{user}:{token}@github.com/{user}/{name}.git"
 
-    print(f"\n推送 main（用一次性 URL，令牌不落盘）…")
+    print(f"\n推送 main（走代理 + OpenSSL，令牌用一次性 URL 不落盘）…")
     proc = subprocess.run(
-        ["git", "push", push_url, "main:main"],
+        ["git", *GIT_NET, "push", push_url, "main:main"],
         cwd=ROOT, capture_output=True, text=True, timeout=900,
     )
     out = (proc.stdout + proc.stderr).replace(token, "<redacted>")
