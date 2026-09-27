@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大量子 · 网络观点分析工具</title>
+<!-- 内联 SVG 图标：一条谱系轴 + 三个立场点，零额外请求 -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0e13'/%3E%3Cline x1='5' y1='16' x2='27' y2='16' stroke='%234fd6d2' stroke-width='1.6' stroke-linecap='round'/%3E%3Ccircle cx='9' cy='16' r='3' fill='none' stroke='%235a9fe0' stroke-width='1.6'/%3E%3Ccircle cx='16' cy='16' r='4.2' fill='none' stroke='%234fd6d2' stroke-width='1.6'/%3E%3Ccircle cx='23' cy='16' r='3' fill='none' stroke='%23d47ac4' stroke-width='1.6'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <h1>大量子</h1>
+      <span class="sub">网络观点分析工具</span>
+    </div>
+    <div class="spacer"></div>
+    <span id="keyStatus" class="pill">检查中</span>
+    <button class="ghost" id="btnSettings">设置</button>
+  </header>
+
+  <aside class="sidebar">
+    <h2>运行历史</h2>
+    <div id="runList"><div class="empty">还没有分析记录。<br>先在右边导入一批评论。</div></div>
+  </aside>
+
+  <main class="main">
+
+    <nav class="tabs">
+      <button class="tab active" data-view="import">导入</button>
+      <button class="tab" data-view="analyze">分析</button>
+      <button class="tab" data-view="stances" disabled>立场</button>
+      <button class="tab" data-view="report" disabled>报告</button>
+      <button class="tab" data-view="prompts">提示词</button>
+    </nav>
+
+    <!-- ============================================ 导入 -->
+    <section class="view active" id="view-import">
+
+      <div class="card">
+        <h3>1 · 事件</h3>
+        <p class="hint">事件名会出现在报告标题里。平台只用于标注来源，不影响分析。</p>
+        <div class="row">
+          <label class="field" style="flex:2">
+            <span>事件名称</span>
+            <input type="text" id="eventName" placeholder="例：某地铁偷拍争议">
+          </label>
+          <label class="field">
+            <span>来源平台</span>
+            <select id="platform">
+              <option value="">不指定</option>
+              <option value="bilibili">B站</option>
+              <option value="tieba">百度贴吧</option>
+              <option value="douyin">抖音</option>
+              <option value="xiaohongshu">小红书</option>
+              <option value="weibo">微博</option>
+              <option value="zhihu">知乎</option>
+              <option value="kuaishou">快手</option>
+              <option value="mixed">多平台混合</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>2 · 评论数据</h3>
+        <p class="hint">
+          支持粘贴文本，或上传 <span class="mono">txt / csv / tsv / json / jsonl / xlsx</span>。
+          JSON 会自动摊平嵌套结构（含二级评论）。字段名会自动识别，识别错了可以在预览里手动改。
+        </p>
+
+        <div class="row tight" style="margin-bottom:12px">
+          <div class="fixed">
+            <button id="btnUpload">选择文件…</button>
+            <input type="file" id="fileInput" style="display:none"
+                   accept=".txt,.csv,.tsv,.json,.jsonl,.ndjson,.xlsx,.xls">
+          </div>
+          <div class="fixed faint mono" id="fileName">未选择文件</div>
+        </div>
+
+        <label class="field">
+          <span>或者直接粘贴（一行一条评论，或整段 JSON / CSV）</span>
+          <textarea id="rawText" placeholder="把评论粘在这里…"></textarea>
+        </label>
+
+        <div class="row tight">
+          <div class="fixed"><button id="btnPreview">解析预览</button></div>
+          <div class="fixed"><button class="primary" id="btnImport" disabled>导入</button></div>
+          <div class="fixed faint" id="importHint" style="align-self:center"></div>
+        </div>
+      </div>
+
+      <div class="card" id="previewCard" style="display:none">
+        <h3>解析结果</h3>
+        <div id="previewBody"></div>
+      </div>
+
+    </section>
+
+    <!-- ============================================ 分析 -->
+    <section class="view" id="view-analyze">
+      <div id="analyzeEmpty" class="empty">先导入一批评论。</div>
+
+      <div id="analyzeBody" style="display:none">
+        <div class="card">
+          <h3>成本预估</h3>
+          <p class="hint" id="estimateNote"></p>
+          <div id="estimateRows"></div>
+          <div class="row tight" style="margin-top:14px">
+            <div class="fixed">
+              <button class="primary" id="btnAnalyze">开始分析</button>
+            </div>
+            <div class="fixed">
+              <button id="btnTrial">先试跑 30 条（几分钱）</button>
+            </div>
+            <div class="fixed">
+              <button id="btnReestimate">重新估算</button>
+            </div>
+            <div class="fixed">
+              <button id="btnDryRun">预览将发出的请求</button>
+            </div>
+          </div>
+          <p class="hint" style="margin-top:10px">
+            <strong>建议先试跑。</strong>试跑只花几分钱，跑完能看到模型到底从评论里
+            捞出了哪些词 —— 确认捞得准，再跑全量。试跑的结果会保留，
+            全量跑时直接复用，不会重复付费。
+          </p>
+        </div>
+
+        <div class="card" id="trialCard" style="display:none">
+          <h3>捞取质量核对</h3>
+          <p class="hint">
+            下面是模型从评论原文里捞出的标签。重点看两件事：
+            ① 标签词是不是<strong>评论里真实出现的词</strong>（而不是模型发明的学术分类）；
+            ② 该有立场的地方是不是空着。
+          </p>
+          <div id="trialMeta" style="margin-bottom:12px"></div>
+          <div id="trialTerms" style="margin-bottom:14px"></div>
+          <div id="trialRows"></div>
+        </div>
+
+        <div class="card" id="dryRunCard" style="display:none">
+          <h3>将要发出的请求</h3>
+          <p class="hint" id="dryRunNote"></p>
+          <div class="mono dim" id="dryRunMeta" style="margin-bottom:10px"></div>
+          <div class="log" id="dryRunBody" style="max-height:420px"></div>
+        </div>
+
+        <div class="card" id="redoCard">
+          <h3>重跑范围</h3>
+          <p class="hint">
+            已经跑过的阶段会直接复用，不重复花钱。改了提示词才需要勾选重跑。
+          </p>
+          <div id="redoToggles" class="row tight"></div>
+
+          <div class="row" style="margin-top:16px;align-items:flex-end">
+            <label class="field" style="flex:0 0 220px;margin:0">
+              <span>最多分析多少条（0 = 全部）</span>
+              <input type="number" id="sampleLimit" min="0" step="100" value="0">
+            </label>
+            <div class="faint" id="sampleHint" style="flex:1;padding-bottom:8px">
+              评论上万时全量跑又慢又贵。填一个上限会做<strong>均匀随机抽样</strong>，
+              抽样比例会写进报告 —— 不按热度挑，所以小众立场不会被系统性剔除。
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="progressCard" style="display:none">
+          <h3><span id="progressTitle">分析中…</span></h3>
+          <div class="progress-outer"><div class="progress-inner" id="progressBar"></div></div>
+          <div class="row tight" style="margin-bottom:12px">
+            <div class="mono dim" id="progressMsg" style="flex:1">准备中</div>
+            <div class="mono cyan" id="progressPct" style="flex:0 0 auto">0%</div>
+          </div>
+          <div class="log" id="logBox"></div>
+        </div>
+
+        <div id="analyzeResult"></div>
+      </div>
+    </section>
+
+    <!-- ============================================ 立场 -->
+    <section class="view" id="view-stances">
+      <div id="stancesEmpty" class="empty">还没有立场数据。先跑一遍分析。</div>
+
+      <div id="stancesBody" style="display:none">
+        <div class="card">
+          <h3>立场坐标轴</h3>
+          <p class="hint" id="axisHint"></p>
+          <div class="row tight" style="margin-bottom:12px">
+            <div class="fixed">
+              <button id="metricCount" class="active">按评论条数</button>
+            </div>
+            <div class="fixed">
+              <button id="metricLikes">按点赞加权</button>
+            </div>
+          </div>
+          <div class="axis-wrap"><div id="axisHost"></div></div>
+        </div>
+
+        <div class="card" id="sampleCard">
+          <h3>样本情况</h3>
+          <div class="stat-grid" id="statGrid"></div>
+          <div id="statNotes" style="margin-top:12px"></div>
+        </div>
+
+        <div class="card">
+          <h3>各立场明细</h3>
+          <p class="hint">
+            按占比从高到低。占比之和可能超过 100% —— 很多人同时持有多个立场。
+            <span class="mono">构成占比</span> 是所有标签归属里的份额，那个加起来正好 100%。
+          </p>
+          <div id="stanceList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================ 报告 -->
+    <section class="view" id="view-report">
+      <div id="reportEmpty" class="empty">还没有生成报告。跑完分析后会出现在这里。</div>
+
+      <div id="reportBody" style="display:none">
+        <div class="row tight" style="margin-bottom:14px">
+          <div class="fixed"><button id="btnExport">导出 Markdown</button></div>
+          <div class="fixed"><button id="btnCopy">复制全文</button></div>
+        </div>
+        <div class="card">
+          <h3>共识与撕裂点</h3>
+          <p class="hint">用模拟陪审团打分算出来的：所有立场都打高分的是共识，方差大的是撕裂点。</p>
+          <div id="juryBody"></div>
+        </div>
+        <div class="report" id="reportBodyMd"></div>
+      </div>
+    </section>
+
+    <!-- ============================================ 提示词 -->
+    <section class="view" id="view-prompts">
+      <div class="card">
+        <h3>提示词</h3>
+        <p class="hint">
+          这是整个工具的灵魂，可以直接改。改完保存即生效，不用重启。
+          改过提示词之后，记得在「分析」页勾选对应的阶段重跑。
+        </p>
+        <div class="prompt-list" id="promptList"></div>
+        <textarea id="promptEditor" style="min-height:420px"></textarea>
+        <div class="row tight" style="margin-top:12px">
+          <div class="fixed"><button class="primary" id="btnSavePrompt">保存</button></div>
+          <div class="fixed faint" id="promptStatus" style="align-self:center"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============================================ 设置弹窗 -->
+<div class="modal-backdrop" id="settingsModal" style="display:none">
+  <div class="modal">
+    <h3>设置</h3>
+    <p class="hint">
+      配置保存在 <span class="mono" id="envPath">.env</span>，不会写进系统环境变量。
+    </p>
+
+    <label class="field">
+      <span>DeepSeek API Key</span>
+      <input type="password" id="setKey" placeholder="sk-...">
+    </label>
+
+    <label class="field">
+      <span>模型</span>
+      <select id="setModel">
+        <option value="deepseek-flash">deepseek-flash（便宜，推荐）</option>
+        <option value="deepseek-v4-pro">deepseek-v4-pro（更强，贵约 4 倍）</option>
+      </select>
+    </label>
+
+    <div class="row">
+      <label class="field">
+        <span>每批评论数</span>
+        <input type="number" id="setBatch" min="20" max="1000" step="20">
+      </label>
+      <label class="field">
+        <span>并发数</span>
+        <input type="number" id="setConcurrency" min="1" max="32" step="1">
+      </label>
+    </div>
+
+    <div id="settingsMsg"></div>
+
+    <div class="actions">
+      <button id="btnTestKey">测试连通性</button>
+      <button id="btnCloseSettings">关闭</button>
+      <button class="primary" id="btnSaveSettings">保存</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/md.js"></script>
+<script src="/static/axis.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
