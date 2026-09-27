@@ -38,12 +38,13 @@ SECRET_PATTERNS = [
     r"AKIA[0-9A-Z]{16}",
 ]
 
-# 允许出现的（占位符、示例、文档）
+# 允许出现的（占位符、示例、以及扫描器自己的正则模式）
 ALLOW_FILES = {
     ".env.example",
     "tests/check_secrets.py",
     "tests/check_github_auth.py",
     "tests/push_to_github.py",
+    "tests/verify_remote_clean.py",
     "README.md",
     "docs/架构设计.md",
 }
