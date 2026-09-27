@@ -36,7 +36,7 @@ def self_check() -> int:
         print(f"[FAIL] 缺少依赖：{exc}")
         problems += 1
 
-    from liangdazi.config import Config, ensure_dirs
+    from daliangzi.config import Config, ensure_dirs
 
     ensure_dirs()
     print("[ok]   数据目录就绪")
@@ -48,7 +48,7 @@ def self_check() -> int:
         print("[warn] 还没配置 DeepSeek API Key（启动后在网页里填）")
 
     try:
-        from liangdazi.prompts_loader import list_prompts
+        from daliangzi.prompts_loader import list_prompts
 
         prompts = list_prompts()
         print(f"[ok]   提示词 {len(prompts)} 个：" + "、".join(p["name"] for p in prompts))
@@ -57,7 +57,7 @@ def self_check() -> int:
         problems += 1
 
     try:
-        from liangdazi.ingest.parse import load_from_text, records_to_comments
+        from daliangzi.ingest.parse import load_from_text, records_to_comments
 
         sample = 'content,like_count\n"这家店服务太差了，服务员爱答不理",12\n"味道还行就是太贵",3\n'
         result = load_from_text(sample, "test.csv")
@@ -69,7 +69,7 @@ def self_check() -> int:
         problems += 1
 
     try:
-        from liangdazi.web.server import create_app
+        from daliangzi.web.server import create_app
 
         app = create_app()
         routes = [r.rule for r in app.url_map.iter_rules() if r.rule.startswith("/api")]
@@ -98,7 +98,7 @@ def main() -> int:
         print("\n自检未通过。加 --check 可单独运行自检。")
         return 1
 
-    from liangdazi.web.server import create_app
+    from daliangzi.web.server import create_app
 
     app = create_app()
     url = f"http://{args.host}:{args.port}"

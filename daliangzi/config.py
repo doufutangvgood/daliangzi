@@ -148,7 +148,7 @@ class Config:
             model=env.get("DEEPSEEK_MODEL", "") or DEFAULT_MODEL,
         )
         for attr in ("batch_size", "concurrency", "sample_limit", "max_retries"):
-            raw = env.get("LIANGDAZI_" + attr.upper())
+            raw = env.get("DALIANGZI_" + attr.upper())
             if raw:
                 try:
                     setattr(cfg, attr, int(raw))

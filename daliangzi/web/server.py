@@ -170,8 +170,8 @@ def create_app() -> Flask:
         for key, env_name in (
             ("model", "DEEPSEEK_MODEL"),
             ("base_url", "DEEPSEEK_BASE_URL"),
-            ("batch_size", "LIANGDAZI_BATCH_SIZE"),
-            ("concurrency", "LIANGDAZI_CONCURRENCY"),
+            ("batch_size", "DALIANGZI_BATCH_SIZE"),
+            ("concurrency", "DALIANGZI_CONCURRENCY"),
         ):
             value = body.get(key)
             if value not in (None, ""):

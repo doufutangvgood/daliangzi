@@ -194,7 +194,7 @@ data/runs/<run_id>/
 ```
 大量子/
 ├── run.py                      启动入口（python run.py --check 只自检）
-├── liangdazi/
+├── daliangzi/
 │   ├── config.py               配置 + 密钥 + DeepSeek 定价表
 │   ├── llm.py                  DeepSeek 客户端：JSON 输出、并发、重试、用量统计
 │   ├── prompts_loader.py       提示词加载（带 mtime 缓存，改了即时生效）
@@ -229,7 +229,7 @@ data/runs/<run_id>/
 
 ## 提示词
 
-整个工具的灵魂，全部在 `liangdazi/prompts/`，可以直接在网页「提示词」页里改：
+整个工具的灵魂，全部在 `daliangzi/prompts/`，可以直接在网页「提示词」页里改：
 
 | 文件 | 作用 |
 |---|---|

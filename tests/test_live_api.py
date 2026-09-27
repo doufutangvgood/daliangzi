@@ -29,9 +29,9 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 import httpx  # noqa: E402
 
-from liangdazi.config import THINKING_BY_STAGE, Config  # noqa: E402
-from liangdazi.llm import DeepSeekClient, LLMError, build_payload  # noqa: E402
-from liangdazi.prompts_loader import load_prompt  # noqa: E402
+from daliangzi.config import THINKING_BY_STAGE, Config  # noqa: E402
+from daliangzi.llm import DeepSeekClient, LLMError, build_payload  # noqa: E402
+from daliangzi.prompts_loader import load_prompt  # noqa: E402
 
 PASS = 0
 FAIL = 0
@@ -172,8 +172,8 @@ def main() -> int:
 
     # 3) 干跑接口构造的请求体 == 真实请求体
     print("\n[干跑与真实请求一致性]")
-    from liangdazi.pipeline.stage1_labels import _build_user_prompt
-    from liangdazi.ingest.model import Comment
+    from daliangzi.pipeline.stage1_labels import _build_user_prompt
+    from daliangzi.ingest.model import Comment
 
     sample = [Comment(id="a1", text="这女的典型捞女，结婚要房要车"), Comment(id="a2", text="偷拍违法必须严惩")]
     sys_p = load_prompt("stage1_标签")

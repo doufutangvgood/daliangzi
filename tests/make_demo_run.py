@@ -18,12 +18,12 @@ sys.path.insert(0, str(ROOT))
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-from liangdazi.config import Config                       # noqa: E402
-from liangdazi.ingest.model import Comment                # noqa: E402
-from liangdazi.ingest.parse import load_from_text, records_to_comments  # noqa: E402
-from liangdazi.llm import LLMResult                       # noqa: E402
-from liangdazi.pipeline import analyze                    # noqa: E402
-from liangdazi.store import Run, new_run_id               # noqa: E402
+from daliangzi.config import Config                       # noqa: E402
+from daliangzi.ingest.model import Comment                # noqa: E402
+from daliangzi.ingest.parse import load_from_text, records_to_comments  # noqa: E402
+from daliangzi.llm import LLMResult                       # noqa: E402
+from daliangzi.pipeline import analyze                    # noqa: E402
+from daliangzi.store import Run, new_run_id               # noqa: E402
 
 EVENT = "某地铁偷拍争议"
 
@@ -347,7 +347,7 @@ def main() -> int:
         "comments": [c.to_dict() for c in comments],
     })
 
-    import liangdazi.llm as llm_module
+    import daliangzi.llm as llm_module
 
     original = llm_module.DeepSeekClient.complete
     llm_module.DeepSeekClient.complete = make_fake_complete()

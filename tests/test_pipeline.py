@@ -15,15 +15,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from liangdazi.config import Config                      # noqa: E402
-from liangdazi.ingest.model import Comment               # noqa: E402
-from liangdazi.ingest.parse import (                     # noqa: E402
+from daliangzi.config import Config                      # noqa: E402
+from daliangzi.ingest.model import Comment               # noqa: E402
+from daliangzi.ingest.parse import (                     # noqa: E402
     load_from_text,
     records_to_comments,
 )
-from liangdazi.llm import LLMResult                      # noqa: E402
-from liangdazi.pipeline import analyze                   # noqa: E402
-from liangdazi.store import Run, new_run_id              # noqa: E402
+from daliangzi.llm import LLMResult                      # noqa: E402
+from daliangzi.pipeline import analyze                   # noqa: E402
+from daliangzi.store import Run, new_run_id              # noqa: E402
 
 PASS = 0
 FAIL = 0
@@ -250,10 +250,10 @@ def test_counting() -> None:
     """单独验证确定性统计：LLM 不参与数数。"""
     print("\n[确定性统计]")
 
-    from liangdazi.ingest.model import Label, Stance
-    from liangdazi.pipeline.stage1_labels import LabelResult
-    from liangdazi.pipeline.stage2_canon import CanonResult
-    from liangdazi.pipeline.stage3_count import count_stances
+    from daliangzi.ingest.model import Label, Stance
+    from daliangzi.pipeline.stage1_labels import LabelResult
+    from daliangzi.pipeline.stage2_canon import CanonResult
+    from daliangzi.pipeline.stage3_count import count_stances
 
     comments = [
         Comment(id=f"c{i}", text=f"评论{i}", likes=likes)
@@ -314,7 +314,7 @@ def test_counting() -> None:
 def test_pipeline_end_to_end() -> None:
     print("\n[端到端管道（mock LLM）]")
 
-    import liangdazi.llm as llm_module
+    import daliangzi.llm as llm_module
 
     original = llm_module.DeepSeekClient.complete
     CALL_LOG.clear()
@@ -420,7 +420,7 @@ def test_prompt_coverage() -> None:
     """提示词里提到的必填字段，解析器要能认。"""
     print("\n[提示词一致性]")
 
-    from liangdazi.prompts_loader import load_prompt
+    from daliangzi.prompts_loader import load_prompt
 
     p1 = load_prompt("stage1_标签")
     check("阶段一提示词要求逐条输出", "一条都不能漏" in p1)
@@ -454,8 +454,8 @@ def test_thinking_config() -> None:
     """
     print("\n[思考模式配置]")
 
-    from liangdazi.config import THINKING_BY_STAGE
-    from liangdazi.llm import build_payload
+    from daliangzi.config import THINKING_BY_STAGE
+    from daliangzi.llm import build_payload
 
     check("五个阶段都有思考模式设置",
           set(THINKING_BY_STAGE) == {"labels", "canonical", "axis", "jury", "report"},
@@ -471,10 +471,10 @@ def test_thinking_config() -> None:
     # 各阶段确实把设置传下去了（而不是用默认值）
     import inspect
 
-    import liangdazi.pipeline.stage1_labels as s1
-    import liangdazi.pipeline.stage2_canon as s2
-    import liangdazi.pipeline.stage4_axis as s4
-    import liangdazi.pipeline.stage5_report as s5
+    import daliangzi.pipeline.stage1_labels as s1
+    import daliangzi.pipeline.stage2_canon as s2
+    import daliangzi.pipeline.stage4_axis as s4
+    import daliangzi.pipeline.stage5_report as s5
 
     for module, name in ((s1, "stage1"), (s2, "stage2"), (s4, "stage4"), (s5, "stage5")):
         src = inspect.getsource(module)
@@ -492,13 +492,13 @@ def test_fail_fast() -> None:
     """阶段一整体失败时必须立刻停下，而不是静默穿过空阶段。"""
     print("\n[失败快速上报]")
 
-    import liangdazi.llm as llm_module
-    from liangdazi.pipeline import AnalysisError
+    import daliangzi.llm as llm_module
+    from daliangzi.pipeline import AnalysisError
 
     original = llm_module.DeepSeekClient.complete
 
     async def always_fail(self, system, user, **kw):
-        from liangdazi.llm import LLMError
+        from daliangzi.llm import LLMError
         raise LLMError("模拟的调用失败")
 
     # 注意：map_concurrent 用 gather(return_exceptions=True) 会吞掉单批异常，
@@ -536,7 +536,7 @@ def test_sampling() -> None:
     """抽样：上限为 0 时不动，有上限时均匀随机抽样且可复现，并如实记录。"""
     print("\n[抽样]")
 
-    from liangdazi.pipeline import sample_comments
+    from daliangzi.pipeline import sample_comments
 
     comments = [
         Comment(id=f"c{i}", text=f"评论内容{i}", likes=i)
@@ -580,8 +580,8 @@ def test_incremental_labels() -> None:
     """
     print("\n[标签增量补跑]")
 
-    import liangdazi.llm as llm_module
-    from liangdazi.pipeline import analyze
+    import daliangzi.llm as llm_module
+    from daliangzi.pipeline import analyze
 
     original = llm_module.DeepSeekClient.complete
     CALL_LOG.clear()
