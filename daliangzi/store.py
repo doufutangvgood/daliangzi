@@ -28,14 +28,25 @@ STAGE_FILES = {
 }
 
 
-def _slugify(name: str, limit: int = 24) -> str:
-    cleaned = re.sub(r"[^\w\u4e00-\u9fff\-]+", "-", name).strip("-")
-    return (cleaned[:limit] or "run")
+def _slugify(name: str, limit: int = 16) -> str:
+    """把事件名压成一段**纯 ASCII** 的短标识。
+
+    只保留 ASCII 字母数字；中文事件名会得到空串，那就只用时间戳 + 随机后缀。
+
+    为什么必须卡 ASCII：run_id 会被塞进 URL、shell 参数、文件路径里。
+    带中文的 id 实测在这三处都会翻车 —— PowerShell 传参乱码、
+    git 输出转义成八进制、URL 要额外 encode。
+    事件名本来就存在 meta 里（界面读的是那个），id 里不需要它。
+    """
+    cleaned = re.sub(r"[^A-Za-z0-9]+", "-", name).strip("-")
+    return cleaned[:limit]
 
 
 def new_run_id(event_name: str) -> str:
     stamp = datetime.now(CN_TZ).strftime("%Y%m%d-%H%M%S")
-    return f"{stamp}-{_slugify(event_name)}-{uuid.uuid4().hex[:4]}"
+    slug = _slugify(event_name)
+    suffix = uuid.uuid4().hex[:4]
+    return f"{stamp}-{slug}-{suffix}" if slug else f"{stamp}-{suffix}"
 
 
 class Run:

@@ -31,14 +31,13 @@ PATTERNS = [
     (r"COMMANDCODE_API_KEY\s*[:=]\s*[A-Za-z0-9_\-]{12,}", "疑似真实 CC key"),
 ]
 
-# 这些文件本身允许出现「形状像密钥」的内容（占位符、说明文档、扫描器自己）
+# 这些文件本身允许出现「形状像密钥」的内容：占位符、说明文档、扫描器自己的正则
 ALLOWLIST = {
     ".env.example",
     "tests/check_secrets.py",
-    "tests/check_commandcode.py",
-    "tests/probe_commandcode.py",
-    "tests/probe_alpha_generate.py",
+    "tests/verify_remote_clean.py",
     "README.md",
+    "docs/架构设计.md",
 }
 
 SKIP_DIRS = {".git", "__pycache__", "node_modules", ".venv", "venv", ".vendor"}
@@ -46,6 +45,44 @@ SKIP_SUFFIX = {".pyc", ".pyo", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico",
 
 # 这些路径根本不该进版本库，扫到直接算失败
 MUST_BE_IGNORED = [".env", "data"]
+
+# 看起来像「采集数据导出」的文件 —— 里面是真实网友的发言和用户名。
+# 这类文件常常直接躺在仓库根目录上（浏览器/表格工具导出的默认位置），
+# `git add -A` 会一把把它们搂进来。
+DATA_FILE_PATTERNS = [
+    re.compile(r"评论导出"),
+    re.compile(r"comment", re.I),
+    re.compile(r"^_xls_tmp/"),
+]
+DATA_FILE_SUFFIX = {".csv", ".xlsx", ".xls", ".tsv", ".jsonl"}
+
+
+def staged_or_untracked() -> list[str]:
+    """列出「如果现在 commit，会被带进去」的文件（已暂存 + 未忽略的未跟踪）。"""
+    out: list[str] = []
+    try:
+        proc = __import__("subprocess").run(
+            ["git", "status", "--porcelain", "--untracked-files=all"],
+            cwd=ROOT, capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=60,
+        )
+    except Exception:  # noqa: BLE001
+        return out
+    for line in proc.stdout.splitlines():
+        if len(line) < 4:
+            continue
+        status, path = line[:2], line[3:].strip()
+        if status.strip() == "D":
+            continue
+        # git 对含非 ASCII 的路径会加引号并转义，这里还原一下
+        if path.startswith('"') and path.endswith('"'):
+            try:
+                path = path[1:-1].encode("latin-1").decode("unicode_escape").encode(
+                    "latin-1").decode("utf-8")
+            except (UnicodeDecodeError, UnicodeEncodeError):
+                path = path[1:-1]
+        out.append(path)
+    return out
 
 
 def main() -> int:
@@ -107,6 +144,31 @@ def main() -> int:
                     )
 
     print(f"  扫描了 {scanned} 个文本文件")
+
+    # 3) 拦「会被提交的数据导出文件」
+    #    这一步是补上真实踩过的坑：`git add -A` 把根目录上一个 96KB 的
+    #    「xxx_评论导出.csv」（含真实网友用户名）一把搂进了提交。
+    #    密钥扫描抓不到它 —— 它不是密钥，是隐私。
+    print("\n== 即将提交的文件里有没有数据导出 ==")
+    pending = staged_or_untracked()
+    suspicious = []
+    for path in pending:
+        normalized = path.replace("\\", "/")
+        suffix = Path(normalized).suffix.lower()
+        if suffix in DATA_FILE_SUFFIX or any(
+            p.search(normalized) for p in DATA_FILE_PATTERNS
+        ):
+            suspicious.append(normalized)
+
+    if pending:
+        print(f"  待提交文件共 {len(pending)} 个")
+    if suspicious:
+        for s in suspicious:
+            problems.append(f"{s} 像是采集数据导出（含真实网友发言），不该提交")
+            print(f"  [FAIL] {s}")
+        print("         如果是误报，把它加进 .gitignore 或用 git add 精确挑选文件。")
+    else:
+        print("  [ok] 没有数据导出混进来")
 
     if warnings:
         print("\n== 本地敏感数据（确认不会提交）==")
