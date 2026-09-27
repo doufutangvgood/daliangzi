@@ -274,8 +274,8 @@ data/runs/<run_id>/
 ## 测试
 
 ```bash
-python tests/test_pipeline.py    # 85 项：解析清洗、确定性统计、端到端管道、断点续跑、抽样、失败快速上报
-python tests/test_web_api.py     # 57 项：HTTP 接口、错误处理、路径穿越、只读查询不产生副作用
+python tests/test_pipeline.py    # 95 项：解析清洗、确定性统计、端到端管道、断点续跑、抽样、失败快速上报
+python tests/test_web_api.py     # 58 项：HTTP 接口、错误处理、路径穿越、只读查询不产生副作用
 python tests/test_live_api.py    # 23 项：请求体构造 + 真实网络往返（用无效 Key，不产生费用）
 ```
 
@@ -283,6 +283,22 @@ python tests/test_live_api.py    # 23 项：请求体构造 + 真实网络往返
 `api.deepseek.com`，验证 URL 拼装、请求头、请求体形状、401 错误映射都正确 ——
 拿得到 401 而不是连接错误，说明请求确实到达了服务端；
 不是 400 说明请求体的参数形状是合法的。不花钱。
+
+### 辅助脚本
+
+| 脚本 | 用途 |
+|---|---|
+| `tests/check_secrets.py` | **提交前必跑**。扫全树找密钥、令牌、cookie，并确认 `.env` / `data/` 被忽略 |
+| `tests/verify_remote_clean.py` | 推到远端之后，**从 GitHub 上**再验一遍没有密钥泄露 |
+| `tests/make_demo_run.py` | 生成一份 mock 演示数据，零成本看界面长什么样 |
+| `tests/dump_result.py` | 把某次 run 的完整结果导成 Markdown |
+| `tests/label_report.py` | 把观点提炼质量导成可读报告，用于人工核对 |
+| `tests/check_github_auth.py` | 验证本机保存的 GitHub 凭据是否可用 |
+| `tests/push_to_github.py` | 建仓库并推送（令牌用一次性 URL，不落盘） |
+
+> 国内网络下 `github.com:443` 常被墙（但 `api.github.com` 和 `ssh.github.com` 通），
+> 且 Git for Windows 默认的 schannel 后端在受限环境里会报 `SEC_E_NO_CREDENTIALS`。
+> `push_to_github.py` 里已经处理了这两点：走本机代理 + 换 OpenSSL 后端。
 
 ---
 
