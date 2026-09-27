@@ -20,8 +20,12 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def git(*args: str, check: bool = True, redact: str = "") -> subprocess.CompletedProcess:
+    # encoding 必须显式指定：Windows 默认用 GBK 解码子进程输出，
+    # 而提交信息里是中文，会直接抛 UnicodeDecodeError 把整个脚本炸掉。
     proc = subprocess.run(
-        ["git", *GIT_NET, *args], cwd=ROOT, capture_output=True, text=True, timeout=300,
+        ["git", *GIT_NET, *args], cwd=ROOT,
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        timeout=300,
     )
     if check and proc.returncode != 0:
         out = (proc.stdout + proc.stderr).replace(redact, "<redacted>") if redact else (proc.stdout + proc.stderr)
