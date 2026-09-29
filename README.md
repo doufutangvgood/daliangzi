@@ -14,10 +14,29 @@
 
 ## 快速开始
 
+### 一键启动（Windows）
+
+**双击项目根目录的 `启动.bat`。** 它会自己切到 UTF-8 控制台、找到 Python、自检、
+起服务，并**等端口真的能连上之后再打开浏览器** —— 不用手动去点那个地址。
+
+再双击一次不会起第二个服务：它检测到已经在跑，就只把浏览器递过去。
+**关掉那个窗口（或按 `Ctrl+C`）就是停止。**
+
+### 命令行启动
+
 ```bash
 cd 大量子
-python run.py
+python run.py              # 默认 http://127.0.0.1:8770
+python run.py --open       # 起服务 + 自动开浏览器（macOS / Linux 用这个）
+python run.py --port 8765  # 换端口
+python run.py --check      # 只自检，不起服务
 ```
+
+**这里只有一个进程，没有前后端之分，也没有「先起后端再起前端」这回事。**
+后端是 Flask，前端是原生 JS，两者由后端在**同一个端口**上一起发出去
+（`/` 发 `index.html`，`/static/*` 发 `app.js` / `axis.js` / `style.css`）。
+所以不需要 npm、不需要构建步骤、不需要开第二个终端 ——
+在 `daliangzi/web/` 里找不到 `package.json` 是正常的，不是缺文件。
 
 浏览器打开 **http://127.0.0.1:8770**，点右上角「设置」填入 DeepSeek API Key，然后：
 
@@ -193,7 +212,8 @@ data/runs/<run_id>/
 
 ```
 大量子/
-├── run.py                      启动入口（python run.py --check 只自检）
+├── 启动.bat                    Windows 一键启动（双击 = python run.py --open）
+├── run.py                      启动入口（--open 自动开浏览器，--check 只自检）
 ├── daliangzi/
 │   ├── config.py               配置 + 密钥 + DeepSeek 定价表
 │   ├── llm.py                  DeepSeek 客户端：JSON 输出、并发、重试、用量统计
@@ -322,7 +342,8 @@ python tests/test_live_api.py    # 23 项：请求体构造 + 真实网络往返
 | 未归类评论被默默排除 | 报告必须声明分母：「基于 N 条，其中 X 条没有归入任何立场」 |
 | 同一条评论重复同一个词刷权重 | 一条评论对同一类别只计一次 |
 | 坐标轴在窄屏下被等比缩到不可读 | 按容器实际宽度 1:1 像素渲染 + `ResizeObserver` 重画 |
-| **查询一个不存在的 run 会凭空创建空目录** | `Run.__init__` 不 `mkdir`，改为写入时才创建 |
+| **双击 `.bat` 时中文糊成乱码** | `run.py` 把 stdout 强制成 UTF-8，而双击启动的 cmd 默认是 cp936，两者不一致 | `启动.bat` 开头先 `chcp 65001`；同时 `.bat` 正文只写 ASCII，避免 cmd 按当前码页解析批处理文本 |
+| 查询一个不存在的 run 会凭空创建空目录 | `Run.__init__` 不 `mkdir`，改为写入时才创建 |
 | 父评论记录带着整个 `sub_comments` 数组，落盘翻倍 | 摊平时剥掉嵌套字段 |
 
 ---

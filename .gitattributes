@@ -1,0 +1,5 @@
+# Windows 批处理文件必须是 CRLF。
+# LF-only 的 .bat 在 cmd 的某些解析路径下会出问题（带标签/多行块的尤其明显），
+# 而克隆者拿到什么换行取决于他本机的 core.autocrlf —— 这里显式钉死，不靠默认值。
+# 只钉 .bat，不碰其它文件。
+*.bat text eol=crlf
